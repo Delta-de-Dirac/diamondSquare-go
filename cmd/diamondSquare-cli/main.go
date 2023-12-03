@@ -1,18 +1,76 @@
 package main
 
 import (
-	"log"
-	"os"
-	"strconv"
-	"math/rand"
-	"math"
+	"errors"
 	"image"
-	"image/png"
+	"image/color"
 	"image/gif"
 	"image/jpeg"
-	"image/color"
-	"errors"
+	"image/png"
+	"log"
+	"math"
+	"math/rand"
+	"os"
+	"strconv"
 )
+
+type heightmap [][]float64
+
+func (hmap heightmap)GenMap(h float64) error{
+	if h<0 || h>1{
+		return errors.New("GenMap h must be float between 0 and 1")
+	}
+	initializeCorners(hmap)
+	factor := math.Pow(2, -h)
+	scale := 1.0
+	for i:=0;(len(hmap)-1)>>i>1;i++{
+		diamondStep(hmap, scale, i)
+		squareStep(hmap, scale, i)
+		scale *= factor
+	}
+	normalizeHmap(hmap)
+	return nil
+}
+
+func (hmap heightmap)SaveMap(fileName string, outputFormat string) error{
+	file, err := os.Create(fileName)
+	if err != nil{
+		return err
+	}
+	defer file.Close()
+	outputImage := image.NewGray(image.Rect(0,0,len(hmap),len(hmap)))
+	for i := range hmap{
+		for j := range hmap[i]{
+			outputImage.Set(i,j, color.Gray{
+				Y: (uint8)(hmap[i][j]*255),
+			})
+		}
+	}
+	switch outputFormat{
+		case "png":
+			png.Encode(file, outputImage)
+		case "jpeg":
+			jpeg.Encode(file, outputImage, &jpeg.Options{Quality: 100})
+		case "gif":
+			gif.Encode(file, outputImage, &gif.Options{NumColors: 256, Quantizer: nil ,Drawer: nil})
+		default:
+			return errors.New("outputFormat not recognized")
+	}
+	return nil
+}
+
+func NewHeightmap(size int) (heightmap, error){
+	if !isPowerOf2(size-1){
+		return nil, errors.New("Size of Heightmap must be positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33... ")
+	}
+
+	hmap := make(heightmap, size)
+	for i := range hmap{
+		hmap[i] = make([]float64, size)
+	}
+
+	return hmap, nil
+}
 
 func isPowerOf2(x int) bool {
 	if x <= 0{
@@ -137,48 +195,9 @@ func normalizeHmap(hmap [][]float64){
 }
 
 
-func genMap(hmap [][]float64, h float64){
-	initializeCorners(hmap)
-	factor := math.Pow(2, -h)
-	scale := 1.0
-	for i:=0;(len(hmap)-1)>>i>1;i++{
-		diamondStep(hmap, scale, i)
-		squareStep(hmap, scale, i)
-		scale *= factor
-	}
-	normalizeHmap(hmap)
-}
 
-func saveMap(hmap [][]float64, fileName string, outputFormat string) error{
-	file, err := os.Create(fileName)
-	if err != nil{
-		return err
-	}
-	defer file.Close()
-	outputImage := image.NewGray(image.Rect(0,0,len(hmap),len(hmap)))
-	for i := range hmap{
-		for j := range hmap[i]{
-			outputImage.Set(i,j, color.Gray{
-				Y: (uint8)(hmap[i][j]*255),
-			})
-		}
-	}
-	switch outputFormat{
-		case "png":
-			png.Encode(file, outputImage)
-		case "jpeg":
-			jpeg.Encode(file, outputImage, &jpeg.Options{Quality: 100})
-		case "gif":
-			gif.Encode(file, outputImage, &gif.Options{NumColors: 256, Quantizer: nil ,Drawer: nil})
-		default:
-			return errors.New("Error saving result")
-	}
-	return nil
-}
 
 func main() {
-	log.Printf("Starting...")
-
 	if len(os.Args) != 4{
 		log.Printf("Wrong number of arguments... expected 3 arguments, but received %d", len(os.Args)-1)
 		log.Fatal("usage: diamondSquare-go <size> <h> <output filename>")
@@ -223,25 +242,17 @@ func main() {
 		log.Fatal("argument <output filename> must end in .png .jpg .jpeg or .gif")
 	}
 
-	if !isPowerOf2(size - 1){
-		log.Fatal("argument <size> must positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33...")
-	}
-	if !isPowerOf2(size - 1){
-		log.Fatal("argument <size> must positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33...")
-	}
-	if h<0 || h>1{
-		log.Fatal("argument <h> must be float between 0 and 1")
+	hmap, err := NewHeightmap(size)
+	if err != nil{
+		log.Fatal(err)
 	}
 
-	hmap := make([][]float64, size)
-
-	for i := range hmap{
-		hmap[i] = make([]float64, size)
+	err = hmap.GenMap(h)
+	if err != nil{
+		log.Fatal(err)
 	}
 
-	genMap(hmap, h)
-
-	err = saveMap(hmap, fileName, outputFormat)
+	err = hmap.SaveMap(fileName, outputFormat)
 	if err != nil{
 		log.Fatal(err)
 	}
