@@ -8,7 +8,10 @@ import (
 	"math"
 	"image"
 	"image/png"
+	"image/gif"
+	"image/jpeg"
 	"image/color"
+	"errors"
 )
 
 func isPowerOf2(x int) bool {
@@ -146,11 +149,12 @@ func genMap(hmap [][]float64, h float64){
 	normalizeHmap(hmap)
 }
 
-func saveMap(hmap [][]float64, fileName string) error{
+func saveMap(hmap [][]float64, fileName string, outputFormat string) error{
 	file, err := os.Create(fileName)
 	if err != nil{
 		return err
 	}
+	defer file.Close()
 	outputImage := image.NewGray(image.Rect(0,0,len(hmap),len(hmap)))
 	for i := range hmap{
 		for j := range hmap[i]{
@@ -159,8 +163,16 @@ func saveMap(hmap [][]float64, fileName string) error{
 			})
 		}
 	}
-
-	png.Encode(file, outputImage)
+	switch outputFormat{
+		case "png":
+			png.Encode(file, outputImage)
+		case "jpeg":
+			jpeg.Encode(file, outputImage, &jpeg.Options{Quality: 100})
+		case "gif":
+			gif.Encode(file, outputImage, &gif.Options{NumColors: 256, Quantizer: nil ,Drawer: nil})
+		default:
+			return errors.New("Error saving result")
+	}
 	return nil
 }
 
@@ -180,12 +192,37 @@ func main() {
 		log.Fatal(err)
 	}
 	fileName := os.Args[3]
+
 	if len(fileName) < 4 {
-		log.Fatal("argument <output filename> must end in .png")
+		log.Fatal("argument <output filename> must end in .png .jpg .jpeg or .gif")
 	}
-	if fileName[len(fileName)-4:] != ".png" {
-		log.Fatal("argument <output filename> must end in .png")
+
+	outputFormat := ""
+
+	switch fileName[len(fileName)-4:]{
+		case ".png":
+			outputFormat = "png"
+		case ".jpg":
+			outputFormat = "jpeg"
+		case ".gif":
+			outputFormat = "gif"
 	}
+
+	if outputFormat == ""{
+		if len(fileName) < 5 {
+			log.Fatal("argument <output filename> must end in .png .jpg .jpeg or .gif")
+		}
+
+		if !(fileName[len(fileName)-5:] == ".jpeg"){
+			log.Fatal("argument <output filename> must end in .png .jpg .jpeg or .gif")
+		}
+		outputFormat = "jpeg"
+	}
+
+	if outputFormat == ""{
+		log.Fatal("argument <output filename> must end in .png .jpg .jpeg or .gif")
+	}
+
 	if !isPowerOf2(size - 1){
 		log.Fatal("argument <size> must positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33...")
 	}
@@ -204,7 +241,7 @@ func main() {
 
 	genMap(hmap, h)
 
-	err = saveMap(hmap, fileName)
+	err = saveMap(hmap, fileName, outputFormat)
 	if err != nil{
 		log.Fatal(err)
 	}
