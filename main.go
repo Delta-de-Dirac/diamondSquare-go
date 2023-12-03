@@ -9,7 +9,6 @@ import (
 	"image"
 	"image/png"
 	"image/color"
-	"time"
 )
 
 func isPowerOf2(x int) bool {
@@ -203,12 +202,8 @@ func main() {
 		hmap[i] = make([]float64, size)
 	}
 
-	start := time.Now()
-	for i:=0;i<10;i++{
-		genMap(hmap, h)
-	}
-	duration := time.Since(start).Microseconds()
-	log.Printf("Generation took average: %dus", duration/10)
+	genMap(hmap, h)
+
 	err = saveMap(hmap, fileName)
 	if err != nil{
 		log.Fatal(err)
