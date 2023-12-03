@@ -5,6 +5,6 @@ The implementations follows the procedure described in [the Wikipedia article fo
 
 usage: diamondSquare-go <size> <h> <output filename>
 
-Paremeter <h> is used to define the factor by which the scale of random part of each node is mutiplied each iteration, as described in the Wikipedia article
+Paremeter _<h>_ is used to define the factor by which the scale of random part of each node is mutiplied each iteration, as described in the Wikipedia article
 
-Parameter <output filename> must end in either ".png", ".jpg", ".jpeg" or ".gif"
+Parameter _<output filename>_ must end in either ".png", ".jpg", ".jpeg" or ".gif"
