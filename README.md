@@ -19,3 +19,5 @@ Values closer to 0 generate rougher heightmaps while  values closer to 1 generat
 
 Parameter _\<output filename\>_ must end in either ".png", ".jpg", ".jpeg" or ".gif".
 
+# diamondSquare-gui
+diamondSquare-gui located in /cmd/diamondSquare-gui.go is an pplication to run the implementation of the diamondSquare algorithm with confugurable parameters and output to a [fyne](https://fyne.io/) GUI window.

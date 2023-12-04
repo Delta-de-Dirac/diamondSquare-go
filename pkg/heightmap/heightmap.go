@@ -2,13 +2,16 @@ package heightmap
 
 import (
 	"errors"
+
 	"image"
 	"image/color"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+
 	"math"
 	"math/rand"
+
 	"os"
 )
 
@@ -59,7 +62,7 @@ func (hmap heightmap)SaveMap(fileName string, outputFormat string) error{
 
 func NewHeightmap(size int) (heightmap, error){
 	if !isPowerOf2(size-1){
-		return nil, errors.New("Size of Heightmap must be positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33... ")
+		return nil, errors.New("Size of Heightmap must be positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33...")
 	}
 
 	hmap := make(heightmap, size)

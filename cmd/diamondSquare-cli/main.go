@@ -12,7 +12,7 @@ import (
 func main() {
 	if len(os.Args) != 4{
 		log.Printf("Wrong number of arguments... expected 3 arguments, but received %d", len(os.Args)-1)
-		log.Fatal("usage: diamondSquare-go <size> <h> <output filename>")
+		log.Fatal("usage: diamondSquare-cli <size> <h> <output filename>")
 	}
 	size, err := strconv.Atoi(os.Args[1])
 	if err != nil{
