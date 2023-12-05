@@ -9,7 +9,7 @@ diamondSquare-cli located in /cmd/diamondSquare-cli.go is an application to gene
 usage: 
 
 ```
-$diamondSquare-go <size> <h> <output filename>
+$ go run cmd/diamondSquare-cli/main.go <size> <h> <output filename>
 ```
 Parameter _\<size\>_ must must be positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33...
 
@@ -20,4 +20,7 @@ Values closer to 0 generate rougher heightmaps while  values closer to 1 generat
 Parameter _\<output filename\>_ must end in either ".png", ".jpg", ".jpeg" or ".gif".
 
 # diamondSquare-gui
-diamondSquare-gui located in /cmd/diamondSquare-gui.go is an pplication to run the implementation of the diamondSquare algorithm with confugurable parameters and output to a [fyne](https://fyne.io/) GUI window.
+diamondSquare-gui located in /cmd/diamondSquare-gui.go is an application to run the implementation of the diamondSquare algorithm with confugurable parameters and output to a [fyne](https://fyne.io/) GUI window.
+
+# pkg/heightmap
+The package heightmap can be used to generate new and interact with heightmaps.
