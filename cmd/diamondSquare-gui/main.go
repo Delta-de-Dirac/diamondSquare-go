@@ -72,8 +72,8 @@ func main() {
 
 
 	mainCanvas := canvas.NewImageFromImage(image.NewGray(image.Rect(0,0,513,513)))
-	mainCanvas.SetMinSize(fyne.NewSize(800,800))
-	mainCanvas.FillMode = canvas.ImageFillContain
+	mainCanvas.SetMinSize(fyne.NewSize(400,400))
+	mainCanvas.FillMode = canvas.ImageFill(canvas.ImageFillContain)
 
 	displayMap, err  := heightmap.NewHeightmap(257)
 
@@ -137,7 +137,6 @@ func main() {
 		generateButton.Enable()
 	})
 
-
 	savingForm.Append("Output FileName", fileNameEntry)
 
 	savingForm.SetOnValidationChanged(func(err error){
@@ -155,9 +154,7 @@ func main() {
 					   saveButton)
 
 
-	hc := container.NewHSplit(leftContainer, mainCanvas)
-
-	w.Resize(fyne.NewSize(1200,800))
+	hc := container.NewGridWithColumns(2, leftContainer, mainCanvas)
 
 	w.SetContent(hc)
 	w.ShowAndRun()
