@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/Delta-de-Dirac/diamondSquare-go/pkg/heightmap"
 )
@@ -30,23 +31,16 @@ func main() {
 
 	outputFormat := ""
 
-	switch fileName[len(fileName)-4:]{
-		case ".png":
-			outputFormat = "png"
-		case ".jpg":
-			outputFormat = "jpeg"
-		case ".gif":
-			outputFormat = "gif"
+	if strings.HasSuffix(fileName,".png"){
+		outputFormat = "png"
 	}
-
-	if outputFormat == ""{
-		if len(fileName) < 5 {
-			log.Fatal("argument <output filename> must end in .png .jpg .jpeg or .gif")
-		}
-
-		if !(fileName[len(fileName)-5:] == ".jpeg"){
-			log.Fatal("argument <output filename> must end in .png .jpg .jpeg or .gif")
-		}
+	if strings.HasSuffix(fileName,".gif"){
+		outputFormat = "gif"
+	}
+	if strings.HasSuffix(fileName,".jpeg"){
+		outputFormat = "jpeg"
+	}
+	if strings.HasSuffix(fileName,".jpg"){
 		outputFormat = "jpeg"
 	}
 

@@ -13,6 +13,8 @@ import (
 	"math/rand"
 
 	"os"
+
+	"github.com/Delta-de-Dirac/diamondSquare-go/internal/utils"
 )
 
 type heightmap [][]float64
@@ -39,7 +41,7 @@ func (hmap heightmap)SaveMap(fileName string, outputFormat string) error{
 		return err
 	}
 	defer file.Close()
-	outputImage := image.NewGray(image.Rect(0,0,len(hmap),len(hmap)))
+	outputImage := hmap.GetGrayImage()
 	for i := range hmap{
 		for j := range hmap[i]{
 			outputImage.Set(i,j, color.Gray{
@@ -60,8 +62,20 @@ func (hmap heightmap)SaveMap(fileName string, outputFormat string) error{
 	return nil
 }
 
+func (hmap heightmap)GetGrayImage()(* image.Gray){
+	outputImage := image.NewGray(image.Rect(0,0,len(hmap),len(hmap)))
+	for i := range hmap{
+		for j := range hmap[i]{
+			outputImage.Set(i,j, color.Gray{
+				Y: (uint8)(hmap[i][j]*255),
+			})
+		}
+	}
+	return outputImage
+}
+
 func NewHeightmap(size int) (heightmap, error){
-	if !isPowerOf2(size-1){
+	if !(utils.IsPowerOf2(size-1)){
 		return nil, errors.New("Size of Heightmap must be positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33...")
 	}
 
@@ -71,19 +85,6 @@ func NewHeightmap(size int) (heightmap, error){
 	}
 
 	return hmap, nil
-}
-
-func isPowerOf2(x int) bool {
-	if x <= 0{
-		return false
-	}
-	for x % 2 == 0{
-		x /= 2
-		if x == 1{
-			return true
-		}
-	}
-	return false
 }
 
 func initializeCorners(hmap [][]float64){
