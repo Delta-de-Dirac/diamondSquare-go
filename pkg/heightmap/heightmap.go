@@ -13,6 +13,7 @@ import (
 	"math/rand"
 
 	"os"
+	"sync"
 
 	"github.com/Delta-de-Dirac/diamondSquare-go/internal/utils"
 )
@@ -38,21 +39,48 @@ func (hmap heightmap)GenMap(h float64) error{
 	return nil
 }
 
+// Function equivalent to GenMap, however makes use of goroutines
+func (hmap heightmap)GenMapP(h float64) error{
+	if h<0 || h>1{
+		return errors.New("GenMap h must be float between 0 and 1")
+	}
+	initializeCorners(hmap)
+	factor := math.Pow(2, -h)
+	scale := 1.0
+	for i:=0;(len(hmap)-1)>>i>1;i++{
+		diamondStepP(hmap, scale, i)
+		squareStepP(hmap, scale, i)
+		scale *= factor
+	}
+	normalizeHmap(hmap)
+	return nil
+}
+
+
 // Function "SaveMap" saves the heightmap "hmap" to specified fileName in the specified format.
 func (hmap heightmap)SaveMap(fileName string, outputFormat string) error{
 	file, err := os.Create(fileName)
+	wg := sync.WaitGroup{}
 	if err != nil{
 		return err
 	}
 	defer file.Close()
 	outputImage := hmap.GetGrayImage()
+
 	for i := range hmap{
-		for j := range hmap[i]{
-			outputImage.Set(i,j, color.Gray{
-				Y: (uint8)(hmap[i][j]*255),
-			})
-		}
+		wg.Add(1)
+		go func(fI int){
+			defer wg.Done()
+			for j := range hmap[fI]{
+				outputImage.Set(fI,j, color.Gray{
+					Y: (uint8)(hmap[fI][j]*255),
+				})
+			}
+		}(i)
 	}
+	wg.Wait()
+
+
 	switch outputFormat{
 		case "png":
 			png.Encode(file, outputImage)
@@ -176,6 +204,109 @@ func squareStep(hmap [][]float64, scale float64, depth int){
 			hmap[line][column] += scale*2*(rand.Float64()-0.5)
 		}
 	}
+}
+
+// Function equivalent to diamondStep, but includes the use of goroutines
+func diamondStepP(hmap [][]float64, scale float64, depth int){
+	begin := (len(hmap)-1)>>(depth+1)
+	step := (len(hmap)-1)>>depth
+
+	wg := sync.WaitGroup{}
+
+	for i:=0;i<1<<depth;i++{
+		wg.Add(1)
+		go func(fI int){
+			defer wg.Done()
+			for j:=0;j<1<<depth;j++{
+				hmap[begin + fI*step][begin + j*step] = (
+					hmap[fI*step][j*step] +
+					hmap[fI*step][2*begin + j*step] +
+					hmap[2*begin + fI*step][j*step] +
+					hmap[2*begin + fI*step][2*begin + j*step])/4
+				hmap[begin + fI*step][begin + j*step] += scale*2*(rand.Float64()-0.5)
+			}
+		}(i)
+	}
+	wg.Wait()
+}
+
+// Function equivalent to squareStep, but includes the use of goroutines
+func squareStepP(hmap [][]float64, scale float64, depth int){
+	begin := (len(hmap)-1)>>(depth+1)
+	step := 2*begin
+
+	wg := sync.WaitGroup{}
+
+
+
+	//Edge cases for first and last line of nodes
+	wg.Add(1)
+	go func(){
+		defer wg.Done()
+		for column:=begin;column<len(hmap);column+=step{
+			hmap[0][column] = (
+				hmap[0][column-begin] +
+				hmap[0][column+begin] +
+				hmap[begin][column])/3
+			hmap[0][column] += scale*2*(rand.Float64()-0.5)
+
+			hmap[len(hmap)-1][column] = (
+				hmap[len(hmap)-1-begin][column] +
+				hmap[len(hmap)-1][column+begin] +
+				hmap[len(hmap)-1][column-begin])/3
+			hmap[len(hmap)-1][column] += scale*2*(rand.Float64()-0.5)
+		}
+	}()
+
+	//Edge cases for first and last column of nodes
+	wg.Add(1)
+	go func(){
+		defer wg.Done()
+		for line:=begin;line<len(hmap);line+=step{
+			hmap[line][0] = (
+				hmap[line-begin][0] +
+				hmap[line][begin] +
+				hmap[line+begin][0])/3
+			hmap[line][0] += scale*2*(rand.Float64()-0.5)
+
+			hmap[line][len(hmap)-1] = (
+				hmap[line-begin][len(hmap)-1] +
+				hmap[line+begin][len(hmap)-1] +
+				hmap[line][len(hmap)-1-begin])/3
+			hmap[line][len(hmap)-1] += scale*2*(rand.Float64()-0.5)
+		}
+	}()
+
+	for line:=step;line<len(hmap)-step;line+=step{
+		wg.Add(1)
+		go func(fLine int){
+			defer wg.Done()
+			for column:=begin;column<len(hmap);column+=step{
+				hmap[fLine][column] = (
+					hmap[fLine-begin][column] +
+					hmap[fLine+begin][column] +
+					hmap[fLine][column-begin] +
+					hmap[fLine][column+begin])/4
+				hmap[fLine][column] += scale*2*(rand.Float64()-0.5)
+			}
+		}(line)
+	}
+
+	for line:=begin;line<len(hmap);line+=step{
+		wg.Add(1)
+		go func(fLine int){
+			defer wg.Done()
+			for column:=step;column<len(hmap)-step;column+=step{
+				hmap[fLine][column] = (
+					hmap[fLine-begin][column] +
+					hmap[fLine+begin][column] +
+					hmap[fLine][column-begin] +
+					hmap[fLine][column+begin])/4
+				hmap[fLine][column] += scale*2*(rand.Float64()-0.5)
+			}
+		}(line)
+	}
+	wg.Wait()
 }
 
 func normalizeHmap(hmap [][]float64){

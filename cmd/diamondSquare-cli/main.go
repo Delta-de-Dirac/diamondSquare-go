@@ -53,7 +53,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = hmap.GenMap(h)
+	err = hmap.GenMapP(h)
 	if err != nil{
 		log.Fatal(err)
 	}
