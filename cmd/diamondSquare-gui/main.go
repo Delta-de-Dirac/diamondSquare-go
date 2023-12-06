@@ -118,7 +118,7 @@ func main() {
 		if err != nil{
 			log.Fatal(err)
 		}
-		hmap.GenMap(hf)
+		hmap.GenMapP(hf)
 		mainCanvas.Image = hmap.GetGrayImage()
 		mainCanvas.Refresh()
 		displayMap = hmap
