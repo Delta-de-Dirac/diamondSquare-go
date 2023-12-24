@@ -33,39 +33,41 @@ func main() {
 	middleVerticalLineStartPos := rl.Vector2{ X: startingScreenWidth/2, Y: 10}
 	middleVerticalLineEndPos := rl.Vector2{ X: startingScreenWidth/2, Y: startingScreenHeight - 10}
 
+	//layout
+	margin := float32(10)
 
 	// generate button
-	buttonGenerateRectangle := rl.Rectangle{X: 10.0, Y: 120.0, Width: 380.0, Height: 30.0}
-	buttonGenerateText := "Button"
+	buttonGenerateRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/3.0, Width: float32(startingScreenWidth)/2 - margin - 10, Height: float32(startingScreenHeight)/12.0}
+	buttonGenerateText := "Generate!"
 
 	// save button
-	buttonSaveRectangle := rl.Rectangle{X: 10.0, Y: 180.0, Width: 380.0, Height: 30.0}
-	buttonSaveText := "Button"
+	buttonSaveRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/2.0, Width: float32(startingScreenWidth)/2 - margin - 10, Height: float32(startingScreenHeight)/12.0}
+	buttonSaveText := "Save!"
 
-	// size vbox
-	vboxSizeRectangle := rl.Rectangle{X: 50.0, Y: 0.0, Width: 340.0, Height: 30.0}
+	// size tbox
+	tboxSizeRectangle := rl.Rectangle{X: margin+40, Y: 0.0, Width: float32(startingScreenWidth)/2 - margin - 50, Height: float32(startingScreenHeight)/12.0}
 	sizeInputActive := false
 	sizeInput := ""
 	sizeValid := false
 	intSize := 257
 
-	sizeLabelRectangle := rl.Rectangle{X: 10.0, Y: 0.0, Width: 40.0, Height: 30.0}
+	sizeLabelRectangle := rl.Rectangle{X: margin, Y: 0.0, Width: float32(startingScreenWidth)/20.0, Height: float32(startingScreenHeight)/12.0}
 	sizeLabelString := "Size"
 
-	sizeWarningRectangle := rl.Rectangle{X: 50.0, Y: 30.0, Width: 340.0, Height: 30.0}
+	sizeWarningRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/12.0, Width: float32(startingScreenWidth)/2 - margin - 50, Height: float32(startingScreenHeight)/12.0}
 	sizeWarningString := ""
 
-	// h vbox
-	vboxHRectangle := rl.Rectangle{X: 50.0, Y: 60.0, Width: 340.0, Height: 30.0}
+	// h tbox
+	tboxHRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/6.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
 	hInputActive := false
 	hInput := ""
 	hValid := false
 	floatH := 0.9
 
-	hLabelRectangle := rl.Rectangle{X: 10.0, Y: 60.0, Width: 40.0, Height: 30.0}
+	hLabelRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/6.0, Width: float32(startingScreenWidth)/20.0, Height: float32(startingScreenHeight)/12.0}
 	hLabelString := "h"
 
-	hWarningRectangle := rl.Rectangle{X: 50.0, Y: 90.0, Width: 340.0, Height: 30.0}
+	hWarningRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/4.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
 	hWarningString := ""
 
 	// filename textbox
@@ -81,21 +83,26 @@ func main() {
 
 	gui.SetStyle(gui.DEFAULT, gui.TEXT_SIZE, 20)
 
+	//displayMap
+	displayMapX := int32(startingScreenWidth/2) + int32(margin)
+	displayMapY := int32(margin)
+	displayMapSize := utils.Min(int32(startingScreenWidth/2) - int32(2*margin), int32(startingScreenHeight) - int32(2*margin))
 	displayMap, err := heightmap.NewHeightmap(257)
 	if err != nil{
 		log.Fatal(err)
 	}
 
 	mapImage := rl.NewImageFromImage(displayMap.GetGrayImage())
+	rl.ImageResizeNN(mapImage, displayMapSize, displayMapSize)
 	mapTexture := rl.LoadTextureFromImage(mapImage)
 	rl.UnloadImage(mapImage)
 
 	for ;!rl.WindowShouldClose();{
 		if rl.IsMouseButtonPressed(rl.MouseLeftButton){
-			if rl.CheckCollisionPointRec(rl.GetMousePosition(), vboxSizeRectangle){
+			if rl.CheckCollisionPointRec(rl.GetMousePosition(), tboxSizeRectangle){
 				sizeInputActive = true
 				hInputActive = false
-			} else if rl.CheckCollisionPointRec(rl.GetMousePosition(), vboxHRectangle){
+			} else if rl.CheckCollisionPointRec(rl.GetMousePosition(), tboxHRectangle){
 				sizeInputActive = false
 				hInputActive = true
 			} else{
@@ -104,8 +111,41 @@ func main() {
 			}
 		}
 		if rl.IsWindowResized(){
-			middleVerticalLineStartPos = rl.Vector2{ X: float32(rl.GetScreenWidth())/2, Y: 10}
-			middleVerticalLineEndPos = rl.Vector2{ X: float32(rl.GetScreenWidth())/2, Y:float32( rl.GetScreenHeight()) - 10}
+			newWidth := float32(rl.GetScreenWidth())
+			newHeight := float32(rl.GetScreenHeight())
+
+			//update display map
+			displayMapX = int32(newWidth/2) + int32(margin)
+			displayMapY = int32(margin)
+			displayMapSize = utils.Min(int32(newWidth/2) - int32(2*margin), int32(newHeight) - int32(2*margin))
+
+			mapImage = rl.NewImageFromImage(displayMap.GetGrayImage())
+			rl.ImageResizeNN(mapImage, displayMapSize, displayMapSize)
+			mapTexture = rl.LoadTextureFromImage(mapImage)
+			rl.UnloadImage(mapImage)
+
+			//update middle bar
+			middleVerticalLineStartPos = rl.Vector2{ X: newWidth/2, Y: 10}
+			middleVerticalLineEndPos = rl.Vector2{ X: newWidth/2, Y: newHeight - 10}
+
+			//update buttons
+			buttonGenerateRectangle = rl.Rectangle{X: margin, Y: newHeight/3.0, Width: newWidth/2 - margin - 10, Height: newHeight/12.0}
+
+			buttonSaveRectangle = rl.Rectangle{X: margin, Y: newHeight/2.0, Width: newWidth/2 - margin - 10, Height: newHeight/12.0}
+
+			//update tboxes
+			tboxSizeRectangle = rl.Rectangle{X: margin+40, Y: 0.0, Width: newWidth/2 - margin - 50, Height: newHeight/12.0}
+
+			sizeLabelRectangle = rl.Rectangle{X: margin, Y: 0.0, Width: newWidth/20.0, Height: newHeight/12.0}
+
+			sizeWarningRectangle = rl.Rectangle{X: margin+40, Y: newHeight/12.0, Width: newWidth/2 - margin - 50, Height: newHeight/12.0}
+
+			tboxHRectangle = rl.Rectangle{X: margin+40, Y: newHeight/6.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
+
+			hLabelRectangle = rl.Rectangle{X: margin, Y: newHeight/6.0, Width: newWidth/20.0, Height: newHeight/12.0}
+
+			hWarningRectangle = rl.Rectangle{X: margin+40, Y: newHeight/4.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
+
 		}
 
 		rl.BeginDrawing()
@@ -115,8 +155,8 @@ func main() {
 
 		//displayMap
 		rl.DrawTexture(mapTexture,
-				410,
-				10,
+				displayMapX,
+				displayMapY,
 				rl.White)
 
 
@@ -128,7 +168,7 @@ func main() {
 
 		//vboxes
 		tmpCmp := strings.Clone(sizeInput)
-		gui.TextBox(vboxSizeRectangle, &sizeInput, 10, sizeInputActive)
+		gui.TextBox(tboxSizeRectangle, &sizeInput, 10, sizeInputActive)
 		sizeInput = utils.FilterString(sizeInput, "1234567890")
 		if sizeInput != tmpCmp{
 			sizeValid = false
@@ -145,7 +185,7 @@ func main() {
 		}
 
 		tmpCmp = strings.Clone(hInput)
-		gui.TextBox(vboxHRectangle, &hInput, 10, hInputActive)
+		gui.TextBox(tboxHRectangle, &hInput, 10, hInputActive)
 		hInput = utils.FilterString(hInput, ".1234567890")
 		if hInput != tmpCmp{
 			hValid = false
@@ -170,7 +210,7 @@ func main() {
 				}
 				displayMap.GenMapP(floatH)
 				mapImage = rl.NewImageFromImage(displayMap.GetGrayImage())
-				rl.ImageResizeNN(mapImage, 380, 380)
+				rl.ImageResizeNN(mapImage, displayMapSize, displayMapSize)
 				mapTexture = rl.LoadTextureFromImage(mapImage)
 				rl.UnloadImage(mapImage)
 			}

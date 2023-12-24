@@ -24,3 +24,13 @@ func FilterString(s string, r string) string{
 	}
 	return out
 }
+
+func Min(x int32, y ...int32) int32{
+	min := x
+	for _, v := range(y){
+		if v < min{
+			min = v
+		}
+	}
+	return min
+}
