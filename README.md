@@ -22,5 +22,7 @@ Parameter _\<output filename\>_ must end in either ".png", ".jpg", ".jpeg" or ".
 # diamondSquare-gui
 diamondSquare-gui located in /cmd/diamondSquare-gui.go is an application to run the implementation of the diamondSquare algorithm with configurable parameters and output to a [raylib](https://www.raylib.com/) GUI window.
 
+![demo](docs/demo.png)
+
 # pkg/heightmap
 The package heightmap can be used to generate new and interact with heightmaps.
