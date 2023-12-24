@@ -1,5 +1,7 @@
 package utils
 
+import "strings"
+
 func IsPowerOf2(x int) bool {
 	if x <= 0{
 		return false
@@ -11,4 +13,14 @@ func IsPowerOf2(x int) bool {
 		}
 	}
 	return false
+}
+
+func FilterString(s string, r string) string{
+	out := ""
+	for _, v := range(s){
+		if strings.ContainsRune(r, v){
+			out += string(v)
+		}
+	}
+	return out
 }
