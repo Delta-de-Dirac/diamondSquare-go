@@ -1,162 +1,281 @@
 package main
 
 import (
-	"errors"
-	"image"
+	"image/color"
 	"log"
 	"strconv"
 	"strings"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
+	gui "github.com/gen2brain/raylib-go/raygui"
+	rl "github.com/gen2brain/raylib-go/raylib"
 
 	"github.com/Delta-de-Dirac/diamondSquare-go/internal/utils"
 	"github.com/Delta-de-Dirac/diamondSquare-go/pkg/heightmap"
 )
 
+const startingScreenWidth = 800
+const startingScreenHeight = 400
+
+const minScreenWidth = 800
+const minScreenHeight = 400
+
 func main() {
-	a := app.New()
-	w := a.NewWindow("Diamond Square")
+	log.Println("Starting...")
 
-	sizeEntry := widget.NewEntry()
-	sizeEntry.Text = "257"
+	//bgColor := color.RGBA{0x27,0x38,0x73,0xFF}
+	//fgColor := color.RGBA{0xED,0x43,0x8D,0xFF}
 
-	hEntry := widget.NewEntry()
-	hEntry.Text = "0.95"
+	bgColor := color.RGBA{0xDD,0xDD,0xDD,0xFF}
+	fgColor := color.RGBA{0x11,0x11,0x11,0xFF}
 
-	fileNameEntry := widget.NewEntry()
-	fileNameEntry.Text = ""
-	fileNameEntry.Disable()
+	// middle vertical line
+	middleVerticalLineStartPos := rl.Vector2{ X: startingScreenWidth/2, Y: 10}
+	middleVerticalLineEndPos := rl.Vector2{ X: startingScreenWidth/2, Y: startingScreenHeight - 10}
 
-	sizeEntry.Validator = func(s string) error{
-		i, err := strconv.Atoi(s)
-		if err != nil{
-			return err
-		}
-		if !utils.IsPowerOf2(i-1){
-			err := errors.New("Size must be positive integer (2^n)+1 where n natural. Example: 3, 9, 17, 33...")
-			return err
-		}
-		return nil
-	}
+	//layout
+	margin := float32(10)
 
-	hEntry.Validator = func(s string) error{
-		f, err := strconv.ParseFloat(s, 64)
-		if err != nil{
-			return err
-		}
-		if f < 0 || f > 1{
-			return errors.New("Parameter h must be float between 0 and 1")
-		}
-		return nil
-	}
+	// generate button
+	buttonGenerateRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/3.0, Width: float32(startingScreenWidth)/2 - margin - 10, Height: float32(startingScreenHeight)/6.0}
+	buttonGenerateText := "Generate!"
 
-	fileNameEntry.Validator = func(s string) error{
-		if strings.HasSuffix(s,".png"){
-			return nil
-		}
-		if strings.HasSuffix(s,".gif"){
-			return nil
-		}
-		if strings.HasSuffix(s,".jpeg"){
-			return nil
-		}
-		if strings.HasSuffix(s,".jpg"){
-			return nil
-		}
-		return errors.New("filename must end in .png .jpg .jpeg or .gif")
-	}
+	// save button
+	buttonSaveRectangle := rl.Rectangle{X: margin, Y: 2.0*float32(startingScreenHeight)/3.0, Width: float32(startingScreenWidth)/2 - margin - 10, Height: float32(startingScreenHeight)/6.0}
+	buttonSaveText := "Save!"
+
+	// size tbox
+	tboxSizeRectangle := rl.Rectangle{X: margin+40, Y: 0.0, Width: float32(startingScreenWidth)/2 - margin - 50, Height: float32(startingScreenHeight)/12.0}
+	sizeInputActive := false
+	sizeInput := ""
+	sizeValid := false
+	intSize := 257
+
+	sizeLabelRectangle := rl.Rectangle{X: margin, Y: 0.0, Width: float32(startingScreenWidth)/20.0, Height: float32(startingScreenHeight)/12.0}
+	sizeLabelString := "Size"
+
+	sizeWarningRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/12.0, Width: float32(startingScreenWidth)/2 - margin - 50, Height: float32(startingScreenHeight)/12.0}
+	sizeWarningString := ""
+
+	// h tbox
+	tboxHRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/6.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
+	hInputActive := false
+	hInput := ""
+	hValid := false
+	floatH := 0.9
+
+	hLabelRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/6.0, Width: float32(startingScreenWidth)/20.0, Height: float32(startingScreenHeight)/12.0}
+	hLabelString := "h"
+
+	hWarningRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/4.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
+	hWarningString := ""
+
+	// filename tbox
+	tboxFilenameRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/2.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
+	filenameInputActive := false
+	filenameInput := ""
+	filenameValid := false
+	outputFormat := ""
+
+	filenameLabelRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/2.0, Width: float32(startingScreenWidth)/20.0, Height: float32(startingScreenHeight)/12.0}
+	filenameLabelString := "file"
+
+	filenameWarningRectangle := rl.Rectangle{X: margin+40, Y: 7*float32(startingScreenHeight)/12.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
+	filenameWarningString := ""
 
 
-	mainCanvas := canvas.NewImageFromImage(image.NewGray(image.Rect(0,0,513,513)))
-	mainCanvas.SetMinSize(fyne.NewSize(400,400))
-	mainCanvas.FillMode = canvas.ImageFill(canvas.ImageFillContain)
+	rl.SetConfigFlags(rl.FlagWindowResizable)
+	rl.InitWindow(startingScreenWidth, startingScreenHeight, "Diamond Square")
+	rl.SetWindowMinSize(minScreenWidth, minScreenHeight)
+	defer rl.CloseWindow()
+	rl.SetTargetFPS(60)
+	gui.LoadStyleDefault()
 
-	displayMap, err  := heightmap.NewHeightmap(257)
+	gui.SetStyle(gui.DEFAULT, gui.TEXT_SIZE, 20)
 
+	//displayMap
+	displayMapX := int32(startingScreenWidth/2) + int32(margin)
+	displayMapY := int32(margin)
+	displayMapSize := utils.Min(int32(startingScreenWidth/2) - int32(2*margin), int32(startingScreenHeight) - int32(2*margin))
+	displayMap, err := heightmap.NewHeightmap(257)
 	if err != nil{
 		log.Fatal(err)
 	}
 
-	parametersForm := widget.NewForm()
-	savingForm := widget.NewForm()
+	mapImage := rl.NewImageFromImage(displayMap.GetGrayImage())
+	rl.ImageResizeNN(mapImage, displayMapSize, displayMapSize)
+	mapTexture := rl.LoadTextureFromImage(mapImage)
+	rl.UnloadImage(mapImage)
 
-	saveButton := widget.NewButton("Save image to file",func(){
-		outputFormat := ""
-		if strings.HasSuffix(fileNameEntry.Text,".png"){
-			outputFormat = "png"
+	for ;!rl.WindowShouldClose();{
+		if rl.IsMouseButtonPressed(rl.MouseLeftButton){
+			if rl.CheckCollisionPointRec(rl.GetMousePosition(), tboxSizeRectangle){
+				sizeInputActive = true
+				hInputActive = false
+				filenameInputActive = false
+			} else if rl.CheckCollisionPointRec(rl.GetMousePosition(), tboxHRectangle){
+				sizeInputActive = false
+				hInputActive = true
+				filenameInputActive = false
+			} else if rl.CheckCollisionPointRec(rl.GetMousePosition(), tboxFilenameRectangle){
+				sizeInputActive = false
+				hInputActive = false
+				filenameInputActive = true
+			} else{
+				sizeInputActive = false
+				hInputActive = false
+				filenameInputActive = false
+			}
 		}
-		if strings.HasSuffix(fileNameEntry.Text,".gif"){
-			outputFormat = "gif"
+		if rl.IsWindowResized(){
+			newWidth := float32(rl.GetScreenWidth())
+			newHeight := float32(rl.GetScreenHeight())
+
+			//update display map
+			displayMapX = int32(newWidth/2) + int32(margin)
+			displayMapY = int32(margin)
+			displayMapSize = utils.Min(int32(newWidth/2) - int32(2*margin), int32(newHeight) - int32(2*margin))
+
+			mapImage = rl.NewImageFromImage(displayMap.GetGrayImage())
+			rl.ImageResizeNN(mapImage, displayMapSize, displayMapSize)
+			mapTexture = rl.LoadTextureFromImage(mapImage)
+			rl.UnloadImage(mapImage)
+
+			//update middle bar
+			middleVerticalLineStartPos = rl.Vector2{ X: newWidth/2, Y: 10}
+			middleVerticalLineEndPos = rl.Vector2{ X: newWidth/2, Y: newHeight - 10}
+
+			//update buttons
+			buttonGenerateRectangle = rl.Rectangle{X: margin, Y: newHeight/3.0, Width: newWidth/2 - margin - 10, Height: newHeight/6.0}
+
+			buttonSaveRectangle = rl.Rectangle{X: margin, Y: 2.0*newHeight/3.0, Width: newWidth/2 - margin - 10, Height: newHeight/6.0}
+
+			//update tboxes
+			tboxSizeRectangle = rl.Rectangle{X: margin+40, Y: 0.0, Width: newWidth/2 - margin - 50, Height: newHeight/12.0}
+
+			sizeLabelRectangle = rl.Rectangle{X: margin, Y: 0.0, Width: newWidth/20.0, Height: newHeight/12.0}
+
+			sizeWarningRectangle = rl.Rectangle{X: margin+40, Y: newHeight/12.0, Width: newWidth/2 - margin - 50, Height: newHeight/12.0}
+
+			tboxHRectangle = rl.Rectangle{X: margin+40, Y: newHeight/6.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
+
+			hLabelRectangle = rl.Rectangle{X: margin, Y: newHeight/6.0, Width: newWidth/20.0, Height: newHeight/12.0}
+
+			hWarningRectangle = rl.Rectangle{X: margin+40, Y: newHeight/4.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
+
+			tboxFilenameRectangle = rl.Rectangle{X: margin+40, Y: newHeight/2.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
+
+			filenameLabelRectangle = rl.Rectangle{X: margin, Y: newHeight/2.0, Width: newWidth/20.0, Height: newHeight/12.0}
+
+			filenameWarningRectangle = rl.Rectangle{X: margin+40, Y: 7*newHeight/12.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
+
 		}
-		if strings.HasSuffix(fileNameEntry.Text,".jpeg"){
-			outputFormat = "jpeg"
+
+		rl.BeginDrawing()
+		rl.ClearScreenBuffers()
+		rl.ClearBackground(bgColor)
+		rl.DrawLineEx(middleVerticalLineStartPos, middleVerticalLineEndPos, 3.0, fgColor)
+
+		//displayMap
+		rl.DrawTexture(mapTexture,
+				displayMapX,
+				displayMapY,
+				rl.White)
+
+
+		//labels
+		gui.Label(sizeLabelRectangle, sizeLabelString)
+		gui.Label(sizeWarningRectangle, sizeWarningString)
+		gui.Label(hLabelRectangle, hLabelString)
+		gui.Label(hWarningRectangle, hWarningString)
+		gui.Label(filenameLabelRectangle, filenameLabelString)
+		gui.Label(filenameWarningRectangle, filenameWarningString)
+
+
+		//tboxes
+		tmpCmp := strings.Clone(sizeInput)
+		gui.TextBox(tboxSizeRectangle, &sizeInput, 10, sizeInputActive)
+		sizeInput = utils.FilterString(sizeInput, "1234567890")
+		if sizeInput != tmpCmp{
+			sizeValid = false
+			num, err := strconv.Atoi(sizeInput)
+			if err != nil{
+				sizeWarningString = "Size must be a number"
+			} else if !utils.IsPowerOf2(num-1){
+				sizeWarningString = "Size must be power of 2 + 1"
+			} else {
+				sizeValid = true
+				intSize = num
+				sizeWarningString = ""
+			}
 		}
-		if strings.HasSuffix(fileNameEntry.Text,".jpg"){
-			outputFormat = "jpeg"
+
+		tmpCmp = strings.Clone(hInput)
+		gui.TextBox(tboxHRectangle, &hInput, 10, hInputActive)
+		hInput = utils.FilterString(hInput, ".1234567890")
+		if hInput != tmpCmp{
+			hValid = false
+			f, err := strconv.ParseFloat(hInput, 64)
+			if err != nil{
+				hWarningString = "h must be a number"
+			} else if f < 0 || f > 1{
+				hWarningString = "h must be between 0 and 1"
+			} else {
+				hValid = true
+				floatH = f
+				hWarningString = ""
+			}
 		}
-		if outputFormat == ""{
-			log.Fatal("argument <output filename> must end in .png .jpg .jpeg or .gif")
+
+		tmpCmp = strings.Clone(filenameInput)
+		gui.TextBox(tboxFilenameRectangle, &filenameInput, 30, filenameInputActive)
+		if filenameInput != tmpCmp{
+			filenameValid = true
+			outputFormat = ""
+			log.Println(filenameInput)
+			if strings.HasSuffix(filenameInput,".png"){
+				outputFormat = "png"
+				filenameWarningString = ""
+			}else if strings.HasSuffix(filenameInput,".gif"){
+				outputFormat = "gif"
+				filenameWarningString = ""
+			}else if strings.HasSuffix(filenameInput,".jpeg"){
+				outputFormat = "jpeg"
+				filenameWarningString = ""
+			}else if strings.HasSuffix(filenameInput,".jpg"){
+				outputFormat = "jpeg"
+				filenameWarningString = ""
+			}else{
+				filenameValid = false
+				filenameWarningString = "Must end in .png .jpg .jpeg or .gif"
+			}
 		}
-		displayMap.SaveMap(fileNameEntry.Text, outputFormat)
-	})
-	saveButton.Disable()
 
-	generateButton := widget.NewButton("Generate",func(){
-		size, err := strconv.Atoi(sizeEntry.Text)
-		if err != nil{
-			log.Fatal(err)
+		//buttons
+		if gui.Button(buttonGenerateRectangle, buttonGenerateText){
+			if hValid && sizeValid{
+				displayMap, err = heightmap.NewHeightmap(intSize)
+				if err != nil{
+					log.Fatal(err)
+				}
+				displayMap.GenMapP(floatH)
+				mapImage = rl.NewImageFromImage(displayMap.GetGrayImage())
+				rl.ImageResizeNN(mapImage, displayMapSize, displayMapSize)
+				mapTexture = rl.LoadTextureFromImage(mapImage)
+				rl.UnloadImage(mapImage)
+			}
 		}
-		hmap, err := heightmap.NewHeightmap(size)
-		if err != nil{
-			log.Fatal(err)
+		if gui.Button(buttonSaveRectangle, buttonSaveText){
+			if filenameValid{
+				err := displayMap.SaveMap(filenameInput, outputFormat)
+				if err != nil{
+					log.Println(err)
+				}
+			} else {
+				filenameWarningString = "Must end in .png .jpg .jpeg or .gif"
+			}
 		}
-		hf, err := strconv.ParseFloat(hEntry.Text, 64)
-		if err != nil{
-			log.Fatal(err)
-		}
-		hmap.GenMapP(hf)
-		mainCanvas.Image = hmap.GetGrayImage()
-		mainCanvas.Refresh()
-		displayMap = hmap
-		fileNameEntry.Enable()
-		savingForm.Refresh()
-	})
 
-
-	parametersForm.Append("Size", sizeEntry)
-	parametersForm.Append("Parameter h", hEntry)
-	parametersForm.SetOnValidationChanged(func(err error){
-		if err != nil{
-			generateButton.Disable()
-			return
-		}
-		generateButton.Enable()
-	})
-
-	savingForm.Append("Output FileName", fileNameEntry)
-
-	savingForm.SetOnValidationChanged(func(err error){
-		if err != nil{
-			saveButton.Disable()
-			return
-		}
-		saveButton.Enable()
-	})
-
-
-	leftContainer := container.NewVBox(parametersForm,
-					   generateButton,
-					   savingForm,
-					   saveButton)
-
-
-	hc := container.NewGridWithColumns(2, leftContainer, mainCanvas)
-
-	w.SetContent(hc)
-	w.ShowAndRun()
+		rl.EndDrawing()
+	}
 }
 
