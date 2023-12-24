@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "errors"
 	"image/color"
 	"log"
 	"strconv"
@@ -37,11 +36,11 @@ func main() {
 	margin := float32(10)
 
 	// generate button
-	buttonGenerateRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/3.0, Width: float32(startingScreenWidth)/2 - margin - 10, Height: float32(startingScreenHeight)/12.0}
+	buttonGenerateRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/3.0, Width: float32(startingScreenWidth)/2 - margin - 10, Height: float32(startingScreenHeight)/6.0}
 	buttonGenerateText := "Generate!"
 
 	// save button
-	buttonSaveRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/2.0, Width: float32(startingScreenWidth)/2 - margin - 10, Height: float32(startingScreenHeight)/12.0}
+	buttonSaveRectangle := rl.Rectangle{X: margin, Y: 2.0*float32(startingScreenHeight)/3.0, Width: float32(startingScreenWidth)/2 - margin - 10, Height: float32(startingScreenHeight)/6.0}
 	buttonSaveText := "Save!"
 
 	// size tbox
@@ -70,8 +69,18 @@ func main() {
 	hWarningRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/4.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
 	hWarningString := ""
 
-	// filename textbox
-	//tboxFilenameRectangle := rl.Rectangle{X: 10.0, Y: 90.0, Width: 125.0, Height: 30.0}
+	// filename tbox
+	tboxFilenameRectangle := rl.Rectangle{X: margin+40, Y: float32(startingScreenHeight)/2.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
+	filenameInputActive := false
+	filenameInput := ""
+	filenameValid := false
+	outputFormat := ""
+
+	filenameLabelRectangle := rl.Rectangle{X: margin, Y: float32(startingScreenHeight)/2.0, Width: float32(startingScreenWidth)/20.0, Height: float32(startingScreenHeight)/12.0}
+	filenameLabelString := "file"
+
+	filenameWarningRectangle := rl.Rectangle{X: margin+40, Y: 7*float32(startingScreenHeight)/12.0, Width: float32(startingScreenWidth)/2.0 - margin - 50, Height: float32(startingScreenHeight)/12.0}
+	filenameWarningString := ""
 
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
@@ -102,12 +111,19 @@ func main() {
 			if rl.CheckCollisionPointRec(rl.GetMousePosition(), tboxSizeRectangle){
 				sizeInputActive = true
 				hInputActive = false
+				filenameInputActive = false
 			} else if rl.CheckCollisionPointRec(rl.GetMousePosition(), tboxHRectangle){
 				sizeInputActive = false
 				hInputActive = true
+				filenameInputActive = false
+			} else if rl.CheckCollisionPointRec(rl.GetMousePosition(), tboxFilenameRectangle){
+				sizeInputActive = false
+				hInputActive = false
+				filenameInputActive = true
 			} else{
 				sizeInputActive = false
 				hInputActive = false
+				filenameInputActive = false
 			}
 		}
 		if rl.IsWindowResized(){
@@ -129,9 +145,9 @@ func main() {
 			middleVerticalLineEndPos = rl.Vector2{ X: newWidth/2, Y: newHeight - 10}
 
 			//update buttons
-			buttonGenerateRectangle = rl.Rectangle{X: margin, Y: newHeight/3.0, Width: newWidth/2 - margin - 10, Height: newHeight/12.0}
+			buttonGenerateRectangle = rl.Rectangle{X: margin, Y: newHeight/3.0, Width: newWidth/2 - margin - 10, Height: newHeight/6.0}
 
-			buttonSaveRectangle = rl.Rectangle{X: margin, Y: newHeight/2.0, Width: newWidth/2 - margin - 10, Height: newHeight/12.0}
+			buttonSaveRectangle = rl.Rectangle{X: margin, Y: 2.0*newHeight/3.0, Width: newWidth/2 - margin - 10, Height: newHeight/6.0}
 
 			//update tboxes
 			tboxSizeRectangle = rl.Rectangle{X: margin+40, Y: 0.0, Width: newWidth/2 - margin - 50, Height: newHeight/12.0}
@@ -145,6 +161,12 @@ func main() {
 			hLabelRectangle = rl.Rectangle{X: margin, Y: newHeight/6.0, Width: newWidth/20.0, Height: newHeight/12.0}
 
 			hWarningRectangle = rl.Rectangle{X: margin+40, Y: newHeight/4.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
+
+			tboxFilenameRectangle = rl.Rectangle{X: margin+40, Y: newHeight/2.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
+
+			filenameLabelRectangle = rl.Rectangle{X: margin, Y: newHeight/2.0, Width: newWidth/20.0, Height: newHeight/12.0}
+
+			filenameWarningRectangle = rl.Rectangle{X: margin+40, Y: 7*newHeight/12.0, Width: newWidth/2.0 - margin - 50, Height: newHeight/12.0}
 
 		}
 
@@ -165,8 +187,11 @@ func main() {
 		gui.Label(sizeWarningRectangle, sizeWarningString)
 		gui.Label(hLabelRectangle, hLabelString)
 		gui.Label(hWarningRectangle, hWarningString)
+		gui.Label(filenameLabelRectangle, filenameLabelString)
+		gui.Label(filenameWarningRectangle, filenameWarningString)
 
-		//vboxes
+
+		//tboxes
 		tmpCmp := strings.Clone(sizeInput)
 		gui.TextBox(tboxSizeRectangle, &sizeInput, 10, sizeInputActive)
 		sizeInput = utils.FilterString(sizeInput, "1234567890")
@@ -201,6 +226,30 @@ func main() {
 			}
 		}
 
+		tmpCmp = strings.Clone(filenameInput)
+		gui.TextBox(tboxFilenameRectangle, &filenameInput, 30, filenameInputActive)
+		if filenameInput != tmpCmp{
+			filenameValid = true
+			outputFormat = ""
+			log.Println(filenameInput)
+			if strings.HasSuffix(filenameInput,".png"){
+				outputFormat = "png"
+				filenameWarningString = ""
+			}else if strings.HasSuffix(filenameInput,".gif"){
+				outputFormat = "gif"
+				filenameWarningString = ""
+			}else if strings.HasSuffix(filenameInput,".jpeg"){
+				outputFormat = "jpeg"
+				filenameWarningString = ""
+			}else if strings.HasSuffix(filenameInput,".jpg"){
+				outputFormat = "jpeg"
+				filenameWarningString = ""
+			}else{
+				filenameValid = false
+				filenameWarningString = "Must end in .png .jpg .jpeg or .gif"
+			}
+		}
+
 		//buttons
 		if gui.Button(buttonGenerateRectangle, buttonGenerateText){
 			if hValid && sizeValid{
@@ -216,7 +265,14 @@ func main() {
 			}
 		}
 		if gui.Button(buttonSaveRectangle, buttonSaveText){
-			log.Println("Hello save!")
+			if filenameValid{
+				err := displayMap.SaveMap(filenameInput, outputFormat)
+				if err != nil{
+					log.Println(err)
+				}
+			} else {
+				filenameWarningString = "Must end in .png .jpg .jpeg or .gif"
+			}
 		}
 
 		rl.EndDrawing()
